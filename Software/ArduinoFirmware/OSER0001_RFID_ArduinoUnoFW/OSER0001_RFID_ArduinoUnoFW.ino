@@ -39,6 +39,8 @@
 //MISOpin D12
 //SCKpin  D13
 
+#define READER_COUNT   1
+#define MAX_TAG_COUNT 4
 
 #define SS_1_PIN        8  //SDA
 #define SS_2_PIN        7
@@ -52,7 +54,7 @@
 
 
 // List of Tags UIDs that are allowed to open the puzzle
-byte tagarray[][4] = {
+byte tagarray[][MAX_TAG_COUNT] = {
   {0xD9, 0x4A, 0xA4, 0x5A},
   {0x8A, 0x2B, 0xBC, 0x79}, 
   {0x81, 0x29, 0xBC, 0x79},
@@ -66,11 +68,11 @@ bool access = false;
 const int PWM_VALUE_LOW = 0;
 const int PWM_VALUE_HIGH = 255;
 
-#define NR_OF_READERS   1
+
 
 byte ssPins[] = {SS_1_PIN}; //, SS_2_PIN, SS_3_PIN, SS_4_PIN};
 
-MFRC522 mfrc522[NR_OF_READERS];
+MFRC522 mfrc522[READER_COUNT];
 
 void setup() {
 
@@ -89,7 +91,7 @@ void setup() {
 
 
   /* looking for MFRC522 readers */
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+  for (uint8_t reader = 0; reader < READER_COUNT; reader++) {
     mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
     Serial.print(F("Reader "));
     Serial.print(reader);
@@ -105,7 +107,7 @@ void setup() {
 
 void loop() {
 
-  for (uint8_t reader = 0; reader < NR_OF_READERS; reader++) {
+  for (uint8_t reader = 0; reader < READER_COUNT; reader++) {
 
     // Looking for new cards
     if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
@@ -144,7 +146,7 @@ void loop() {
 
       if (access)
       {
-        if (tagcount == NR_OF_READERS)
+        if (tagcount == READER_COUNT)
         {
           OpenDoor();
         }
