@@ -854,11 +854,6 @@ GND</text>
 <wire x1="48.26" y1="-2.54" x2="48.26" y2="-7.62" width="0.1524" layer="91"/>
 <label x="48.26" y="-7.62" size="1.778" layer="95" rot="R270" xref="yes"/>
 </segment>
-<segment>
-<pinref part="RFID_PWR" gate="G$1" pin="1"/>
-<wire x1="147.32" y1="86.36" x2="142.24" y2="86.36" width="0.1524" layer="91"/>
-<label x="142.24" y="86.36" size="1.778" layer="95" rot="R180" xref="yes"/>
-</segment>
 </net>
 <net name="EXT_MASTER_RST" class="0">
 <segment>
@@ -882,6 +877,11 @@ GND</text>
 <pinref part="ACTUATORS" gate="G$1" pin="4"/>
 <wire x1="109.22" y1="40.64" x2="106.68" y2="40.64" width="0.1524" layer="91"/>
 <label x="106.68" y="40.64" size="1.778" layer="95" rot="R180" xref="yes"/>
+</segment>
+<segment>
+<pinref part="RFID_PWR" gate="G$1" pin="1"/>
+<wire x1="147.32" y1="86.36" x2="142.24" y2="86.36" width="0.1524" layer="91"/>
+<label x="142.24" y="86.36" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="CLOSED_LED" class="0">
@@ -927,6 +927,9 @@ GND</text>
 </nets>
 </sheet>
 </sheets>
+<errors>
+<approved hash="204,1,58.42,-2.54,U1,VIN,,,,"/>
+</errors>
 </schematic>
 </drawing>
 <compatibility>
