@@ -1,29 +1,50 @@
-/**
-   --------------------------------------------------------------------------------------------------------------------
-   Example sketch/program showing how to read data from more than one PICC to serial.
-   --------------------------------------------------------------------------------------------------------------------
-   This is a MFRC522 library example; for further details and other examples see: https://github.com/miguelbalboa/rfid
-   Example sketch/program showing how to read data from more than one PICC (that is: a RFID Tag or Card) using a
-   MFRC522 based RFID Reader on the Arduino SPI interface.
-   Warning: This may not work! Multiple devices at one SPI are difficult and cause many trouble!! Engineering skill
-            and knowledge are required!
-   @license Released into the public domain.
-   Typical pin layout used:
-   -----------------------------------------------------------------------------------------
-               MFRC522      Arduino       Arduino   Arduino    Arduino          Arduino
-               Reader/PCD   Uno/101       Mega      Nano v3    Leonardo/Micro   Pro Micro
-   Signal      Pin          Pin           Pin       Pin        Pin              Pin
-   -----------------------------------------------------------------------------------------
-   RST/Reset   RST          9             5         D9         RESET/ICSP-5     RST
-   SPI SS 1    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
-   SPI SS 2    SDA(SS)      ** custom, take a unused pin, only HIGH/LOW required *
-   SPI MOSI    MOSI         11 / ICSP-4   51        D11        ICSP-4           16
-   SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
-   SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
-*/
+/**************************************************************************/
+/*! 
+    @file     readMifareClassic.pde
+    @author   Adafruit Industries
+  @license  BSD (see license.txt)
 
+    This example will wait for any ISO14443A card or tag, and
+    depending on the size of the UID will attempt to read from it.
+   
+    If the card has a 4-byte UID it is probably a Mifare
+    Classic card, and the following steps are taken:
+   
+    Reads the 4 byte (32 bit) ID of a MiFare Classic card.
+    Since the classic cards have only 32 bit identifiers you can stick
+  them in a single variable and use that to compare card ID's as a
+  number. This doesn't work for ultralight cards that have longer 7
+  byte IDs!
+   
+    Note that you need the baud rate to be 115200 because we need to
+  print out the data and read from the card at the same time!
+
+This is an example sketch for the Adafruit PN532 NFC/RFID breakout boards
+This library works with the Adafruit NFC breakout 
+  ----> https://www.adafruit.com/products/364
+ 
+Check out the links above for our tutorials and wiring diagrams 
+These chips use SPI to communicate, 4 required to interface
+
+Adafruit invests time and resources providing this open source code, 
+please support Adafruit and open-source hardware by purchasing 
+products from Adafruit!
+*/
+/**************************************************************************/
+#include <Wire.h>
 #include <SPI.h>
-#include <MFRC522.h>
+#include <Adafruit_PN532.h>
+
+
+// If using the breakout with SPI, define the pins for SPI communication.
+#define PN532_SCK  2
+#define PN532_MISO 3
+#define PN532_MOSI 4
+#define PN532_SS1  5
+#define PN532_SS2  6
+//#define PN532_SS3  7
+//#define PN532_SS4  8
+
 
 #define DEBUG
 
@@ -33,188 +54,129 @@
 #define DEBUG_PRINT(x)
 #endif
 
-//Other pins coded in MFRC522 library
-#define RST_PIN         9
-//MOSIpin D11
-//MISOpin D12
-//SCKpin  D13
 
-#define READER_COUNT   1
-#define MAX_TAG_COUNT 4
-
-#define SS_1_PIN        8  //SDA
-#define SS_2_PIN        7
-#define SS_3_PIN        6
-#define SS_4_PIN        5
-
-// Led and Relay PINS
-#define OPEN_LED        2
-#define PWM_PIN         3
-#define CLOSED_LED      4
+Adafruit_PN532 nfc1(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS1);
+Adafruit_PN532 nfc2(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS2);
+//Adafruit_PN532 nfc3(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS3);
+//Adafruit_PN532 nfc4(PN532_SCK, PN532_MISO, PN532_MOSI, PN532_SS4);
 
 
-// List of Tags UIDs that are allowed to open the puzzle
-byte tagarray[][MAX_TAG_COUNT] = {
-  {0xD9, 0x4A, 0xA4, 0x5A},
-  {0x8A, 0x2B, 0xBC, 0x79}, 
-  {0x81, 0x29, 0xBC, 0x79},
-  {0xE6, 0xDF, 0xBB, 0x79},
-};
-
-// Inlocking status :
-int tagcount = 0;
-bool access = false;
-
-const int PWM_VALUE_LOW = 0;
-const int PWM_VALUE_HIGH = 255;
+const uint32_t nfcAcceptedTagId1 = 3872679160;
+const uint32_t nfcAcceptedTagId2 = 3584511166;
+//const uint32_t nfcAcceptedTagId3 = 0;
+//const uint32_t nfcAcceptedTagId4 = 0;
 
 
+void setup(void) {
+  Serial.begin(115200);
+  Serial.println("Welcome to the Escape Room RFID Gadget!");
 
-byte ssPins[] = {SS_1_PIN}; //, SS_2_PIN, SS_3_PIN, SS_4_PIN};
+  nfc1.begin();
+  nfc2.begin();
+  //nfc3.begin();
+  //nfc4.begin();
 
-MFRC522 mfrc522[READER_COUNT];
+  getNfcVersion(&nfc1);
+  getNfcVersion(&nfc2);
+  //getNfcVersion(&nfc3);
+  //getNfcVersion(&nfc4);
 
-void setup() {
+  nfc1.SAMConfig();
+  nfc2.SAMConfig();
+  //nfc3.SAMConfig();
+  //nfc4.SAMConfig();
 
-  Serial.begin(9600);           // Initialize serial communications with the PC
-  while (!Serial);              // Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
-
-  SPI.begin();                  // Init SPI bus
-
-  /* Initializing Inputs and Outputs */
-  pinMode(OPEN_LED, OUTPUT);
-  digitalWrite(OPEN_LED, LOW);
-  pinMode(PWM_PIN, OUTPUT);
-  analogWrite(PWM_PIN, PWM_VALUE_LOW);
-  pinMode(CLOSED_LED, OUTPUT);
-  digitalWrite(CLOSED_LED, HIGH);
+  nfc1.setPassiveActivationRetries(1);
+  nfc2.setPassiveActivationRetries(1);
+  //nfc3.setPassiveActivationRetries(1);
+  //nfc4.setPassiveActivationRetries(1);
+  
+  Serial.println("System initialized ...");
+}
 
 
-  /* looking for MFRC522 readers */
-  for (uint8_t reader = 0; reader < READER_COUNT; reader++) {
-    mfrc522[reader].PCD_Init(ssPins[reader], RST_PIN);
-    Serial.print(F("Reader "));
-    Serial.print(reader);
-    Serial.print(F(": "));
-    mfrc522[reader].PCD_DumpVersionToSerial();
-    //mfrc522[reader].PCD_SetAntennaGain(mfrc522[reader].RxGain_max);
+void loop(void) {
+
+  uint32_t nfcTag1 = 0;
+  uint32_t nfcTag2 = 0;
+  //uint32_t nfcTag3 = 0;
+  //uint32_t nfcTag4 = 0;
+  
+  DEBUG_PRINT("READER #1");
+  nfcTag1 = readNfc(&nfc1);
+  DEBUG_PRINT(nfcTag1);
+  delay(1000);
+  
+  DEBUG_PRINT("READER #2");
+  nfcTag2 = readNfc(&nfc2);
+  DEBUG_PRINT(nfcTag2);
+  delay(1000);
+
+  /************************
+  DEBUG_PRINT("READER #3");
+  nfcTag3 = readNfc(&nfc3);
+  DEBUG_PRINT(nfcTag3);
+  delay(1000);
+  
+  DEBUG_PRINT("READER #4");
+  nfcTag4 = readNfc(&nfc4);
+  DEBUG_PRINT(nfcTag4);
+  delay(1000);
+  ***********************/
+
+  if((nfcTag1 == nfcAcceptedTagId1) && (nfcTag2 == nfcAcceptedTagId2)) // && (nfcTag3 == nfcAcceptedTagId3) && (nfcTag4 == nfcAcceptedTagId4));
+  {
+    DEBUG_PRINT("All Tags Correct. Activate Relay.");
   }
 }
 
-/*
-   Main loop.
-*/
 
-void loop() {
-
-  for (uint8_t reader = 0; reader < READER_COUNT; reader++) {
-
-    // Looking for new cards
-    if (mfrc522[reader].PICC_IsNewCardPresent() && mfrc522[reader].PICC_ReadCardSerial()) {
-      Serial.print(F("Reader "));
-      Serial.print(reader);
-
-      // Show some details of the PICC (that is: the tag/card)
-      Serial.print(F(": Card UID:"));
-      dump_byte_array(mfrc522[reader].uid.uidByte, mfrc522[reader].uid.size);
-      Serial.println();
-
-      for (unsigned int x = 0; x < sizeof(tagarray); x++)                  // tagarray's row
-      {
-        for (int i = 0; i < mfrc522[reader].uid.size; i++)        //tagarray's columns
-        {
-          if ( mfrc522[reader].uid.uidByte[i] != tagarray[x][i])  //Comparing the UID in the buffer to the UID in the tag array.
-          {
-            DenyingTag();
-            break;
-          }
-          else
-          {
-            if (i == mfrc522[reader].uid.size - 1)                // Test if we browesed the whole UID.
-            {
-              AllowTag();
-            }
-            else
-            {
-              continue;                                           // We still didn't reach the last cell/column : continue testing!
-            }
-          }
-        }
-        if (access) break;                                        // If the Tag is allowed, quit the test.
-      }
-
-
-      if (access)
-      {
-        if (tagcount == READER_COUNT)
-        {
-          OpenDoor();
-        }
-        else
-        {
-          MoreTagsNeeded();
-        }
-      }
-      else
-      {
-        UnknownTag();
-      }
-      /*Serial.print(F("PICC type: "));
-        MFRC522::PICC_Type piccType = mfrc522[reader].PICC_GetType(mfrc522[reader].uid.sak);
-        Serial.println(mfrc522[reader].PICC_GetTypeName(piccType));*/
-      // Halt PICC
-      mfrc522[reader].PICC_HaltA();
-      // Stop encryption on PCD
-      mfrc522[reader].PCD_StopCrypto1();
-    } //if (mfrc522[reader].PICC_IsNewC..
-  } //for(uint8_t reader..
-}
-
-/**
-   Helper routine to dump a byte array as hex values to Serial.
-*/
-void dump_byte_array(byte * buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer[i], HEX);
+void getNfcVersion(Adafruit_PN532 * nfc)
+{
+  uint32_t versiondata = nfc->getFirmwareVersion();
+  if (! versiondata) {
+    Serial.print("Didn't find PN53x board");
+    while (1); // halt
   }
+  // Got ok data, print it out!
+  Serial.print("Found chip PN5"); 
+  Serial.println((versiondata>>24) & 0xFF, HEX); 
+  Serial.print("Firmware ver. "); 
+  Serial.print((versiondata>>16) & 0xFF, DEC); 
+  Serial.print('.'); 
+  Serial.println((versiondata>>8) & 0xFF, DEC);
 }
 
-void printTagcount() {
-  Serial.print("Tag #");
-  Serial.println(tagcount);
-}
 
-void DenyingTag()
+
+uint32_t readNfc(Adafruit_PN532 * nfc)
 {
-  tagcount = tagcount;
-  access = false;
-}
-
-void AllowTag()
-{
-  tagcount = tagcount + 1;
-  access = true;
-}
-
-
-void OpenDoor()
-{
-  DEBUG_PRINT(F("Welcome! the door is now open"));
-  digitalWrite(OPEN_LED, HIGH);
-  analogWrite(PWM_PIN, PWM_VALUE_HIGH);
-  digitalWrite(CLOSED_LED, LOW);
-}
-
-void MoreTagsNeeded()
-{
-  printTagcount();
-  DEBUG_PRINT(F("System needs more cards"));
-  access = false;
-}
-
-void UnknownTag()
-{
-  DEBUG_PRINT(F("This Tag isn't allowed!"));
-  printTagcount();
+  uint8_t success;
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+  uint32_t cardid = 0;
+    
+  success = nfc->readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+  
+  if (success) {
+    // Display some basic information about the card
+    DEBUG_PRINT("Found an ISO14443A card");
+    DEBUG_PRINT("  UID Value: ");
+    nfc->PrintHex(uid, uidLength);
+    
+    if (uidLength == 4)
+    {
+      // We probably have a Mifare Classic card ... 
+      cardid = uid[0];
+      cardid <<= 8;
+      cardid |= uid[1];
+      cardid <<= 8;
+      cardid |= uid[2];  
+      cardid <<= 8;
+      cardid |= uid[3]; 
+      DEBUG_PRINT("Seems to be a Mifare Classic card.");
+    }
+  }
+  
+  return cardid;
 }
