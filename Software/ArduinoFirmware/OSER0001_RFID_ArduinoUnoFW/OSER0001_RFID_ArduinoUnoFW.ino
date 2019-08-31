@@ -29,17 +29,6 @@
 #include <Adafruit_PN532.h>
 
 
-// If using the breakout with SPI, define the pins for SPI communication.
-#define PN532_SCK  13
-#define PN532_MISO 12
-#define PN532_MOSI 11
-#define PN532_SS1  8
-#define PN532_SS2  7
-//#define PN532_SS3  6
-//#define PN532_SS4  5
-
-#define NUMREADERS 2
-
 #define DEBUG
 
 #ifdef DEBUG
@@ -54,12 +43,25 @@
 #define DEBUG_PRINT(x)
 #endif
 
-Adafruit_PN532 *nfcReaders[NUMREADERS];
+
+
+const int PN532_SCK =  13;
+const int PN532_MISO = 12;
+const int PN532_MOSI = 11;
+const int PN532_SS1 =  8;
+const int PN532_SS2 =  7;
+//const int PN532_SS3 = 6;
+//const int PN532_SS4 = 5;
+
+const int NUMREADERS = 2;
+const int DELAYAMT = 1000;
+bool isLocked = true;
 
 const uint32_t ssPins[NUMREADERS] = {PN532_SS1, PN532_SS2};  //PN532_SS3, PN532_SS4};
 const uint32_t nfcAcceptedTags[NUMREADERS] = {3872679160, 3584511166};   //0, 0};
 
-bool isLocked = true;
+Adafruit_PN532 *nfcReaders[NUMREADERS];
+
 
 
 /**************************************************************************
@@ -76,11 +78,15 @@ void setup(void) {
   {
     nfcReaders[x] = new Adafruit_PN532(PN532_SCK, PN532_MISO, PN532_MOSI, ssPins[x]);
     nfcReaders[x]->begin();
-    uint32_t versiondata = nfcReaders[x]->getFirmwareVersion();
-    if (! versiondata) {
-      Serial.print(F("Didn't find PN53x board"));
-      while (1); // halt
+    //delay(3000);
+    
+    uint32_t versiondata = 9999;
+    while (versiondata == 9999) {
+      versiondata = nfcReaders[x]->getFirmwareVersion();
+      Serial.print(F("Didn't find PN53x board #"));
+      Serial.println(x);
     }
+    
     // Got ok data, print it out!
     Serial.print(F("Found chip PN5"));
     Serial.println((versiondata >> 24) & 0xFF, HEX);
@@ -143,7 +149,7 @@ void loop(void) {
       DEBUG_PRINT(F("Tag ID: "));
       DEBUG_PRINTLN(cardid);
       readNfcTags[x] = cardid;
-      delay(1000);
+      delay(DELAYAMT);
     }
 
     for (int z = 0; z < NUMREADERS; z++) {
