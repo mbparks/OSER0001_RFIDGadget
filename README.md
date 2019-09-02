@@ -7,7 +7,7 @@ RFID tags are a great way to achieve this goal. Embedding RFID tags in the objec
 
 We're building a great a solution for just this puzzle concept.
 
-The hardware includes an Arduino Uno, custom Uno shield, and dedicate PCB for 1 to 4 RFID readers to connect. While the software provided is for PN532 RFID readers using SPI communications, the hardware could be used for any RFID reader that communicates back to the microcontroller over SPI.
+The hardware includes an Arduino Uno, custom Uno shield, and dedicate PCB for 1 to 4 RFID readers to connect. While the software provided is for PN532 RFID readers using SPI communications, the hardware could be used for any RFID reader that communicates back to the microcontroller over SPI. The shield also provides for digital and analog outputs when the puzzle is unlocked. Say to activate a relay. Also an external reset is provided so escape room operators can reset the puzzle from afar.
 
 The software requires just a few small tweaks to change from 1 to 4 RFID readers.
 
