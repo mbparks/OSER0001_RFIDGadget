@@ -1,9 +1,9 @@
 /**************************************************************************
   File:    OSER0001_RFID_ArduinoUnoFW
   Author:  mbparks
-  Date:    30AUG2019
-  Ver.:    0.0.1
-  License: BSD
+  Date:    2SEP2019
+  Ver.:    0.0.2
+  License: MIT
 
   This code is four gadget that can be used in an escape room .
   It will activate a relay once all RFID tagged objects are placed
@@ -44,28 +44,33 @@
 #endif
 
 
-const uint32_t NUMREADERS = 2;
-const uint32_t PN532_SCK =  13;
-const uint32_t PN532_MISO = 12;
-const uint32_t PN532_MOSI = 11;
-const uint32_t PN532_SS1 =  8;
-const uint32_t PN532_SS2 =  7;
-//const uint32_t PN532_SS3 = 6;
-//const uint32_t PN532_SS4 = 5;
+const uint32_t NUM_READERS = 2;
+const uint32_t PN532_SCK_PIN =  13;
+const uint32_t PN532_MISO_PIN = 12;
+const uint32_t PN532_MOSI_PIN = 11;
+const uint32_t PN532_SS1_PIN =  8;
+const uint32_t PN532_SS2_PIN =  7;
+//const uint32_t PN532_SS3_PIN = 6;
+//const uint32_t PN532_SS4_PIN = 5;
+
+const uint32_t ACCEPTED_TAG_ID1 = 3872679160;
+const uint32_t ACCEPTED_TAG_ID2 = 3584511166;
+//const uint32_t ACCEPTED_TAG_ID3 = 0;
+//const uint32_t ACCEPTED_TAG_ID4 = 0;
 
 const uint32_t PWM_OUT_PIN = 3;
 const uint32_t OPEN_LED_PIN = 2;
 const uint32_t CLOSED_LED_PIN = 4;
-const uint32_t PWM_LOW = 0;
-const uint32_t PWM_HIGH = 255;
+const uint32_t PWM_LOW_VAL = 0;
+const uint32_t PWM_HIGH_VAL = 255;
 
-const uint32_t DELAYAMT = 1000;
+const uint32_t DELAY_AMT = 1000;
 bool isLocked = true;
 
-const uint32_t ssPins[NUMREADERS] = {PN532_SS1, PN532_SS2};  //PN532_SS3, PN532_SS4};
-const uint32_t nfcAcceptedTags[NUMREADERS] = {3872679160, 3584511166};   //0, 0};
+const uint32_t SS_PINS[NUM_READERS] = {PN532_SS1_PIN, PN532_SS2_PIN};  //PN532_SS3_PIN, PN532_SS4_PIN};
+const uint32_t NFC_ACCEPTED_TAGS[NUM_READERS] = {ACCEPTED_TAG_ID1, ACCEPTED_TAG_ID2};   //ACCEPTED_TAG_ID3, ACCEPTED_TAG_ID4};
 
-Adafruit_PN532 *nfcReaders[NUMREADERS];
+Adafruit_PN532 *nfcReaders[NUM_READERS];
 
 
 /**************************************************************************
@@ -78,11 +83,11 @@ void setup(void) {
   Serial.begin(115200);
   Serial.println(F("Welcome to the Escape Room RFID Gadget!"));
 
-  for (int x = 0; x < NUMREADERS; x++)
+  for (int x = 0; x < NUM_READERS; x++)
   {
-    nfcReaders[x] = new Adafruit_PN532(PN532_SCK, PN532_MISO, PN532_MOSI, ssPins[x]);
+    nfcReaders[x] = new Adafruit_PN532(PN532_SCK_PIN, PN532_MISO_PIN, PN532_MOSI_PIN, SS_PINS[x]);
     nfcReaders[x]->begin();
-    //delay(DELAYAMT*3);
+    //delay(DELAY_AMT*3);
     
     uint32_t versiondata = 9999;
     while (versiondata == 9999) {
@@ -107,7 +112,7 @@ void setup(void) {
   pinMode(OPEN_LED_PIN, OUTPUT);
   pinMode(CLOSED_LED_PIN, OUTPUT);
   
-  analogWrite(PWM_OUT_PIN, PWM_LOW);
+  analogWrite(PWM_OUT_PIN, PWM_LOW_VAL);
   digitalWrite(OPEN_LED_PIN, LOW);
   digitalWrite(CLOSED_LED_PIN, HIGH);
 
@@ -124,10 +129,10 @@ void setup(void) {
 void loop(void) {
   if (isLocked == true)
   {
-    uint32_t readNfcTags[NUMREADERS] = {0, 0};
+    uint32_t readNfcTags[NUM_READERS] = {0, 0};
     uint32_t countOfMatchingTags = 0;
 
-    for (int x = 0; x < NUMREADERS; x++) {
+    for (int x = 0; x < NUM_READERS; x++) {
       uint8_t success;
       uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
       uint8_t uidLength;                        // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
@@ -161,17 +166,17 @@ void loop(void) {
       DEBUG_PRINT(F("tag ID#"));
       DEBUG_PRINTLN(cardid);
       readNfcTags[x] = cardid;
-      delay(DELAYAMT);
+      delay(DELAY_AMT);
     }
 
-    for (int z = 0; z < NUMREADERS; z++) {
-      if (readNfcTags[z] == nfcAcceptedTags[z])
+    for (int z = 0; z < NUM_READERS; z++) {
+      if (readNfcTags[z] == NFC_ACCEPTED_TAGS[z])
       {
         countOfMatchingTags++;
       }
     }
 
-    if (countOfMatchingTags == NUMREADERS) {
+    if (countOfMatchingTags == NUM_READERS) {
       activateRelay();
     }
   }
@@ -185,7 +190,7 @@ void loop(void) {
 void activateRelay()
 {
   DEBUG_PRINTLN(F("ALERT!!!  ALERT!!! All Tags Correct. Activate Relay.  ALERT!!! ALERT !!!"));
-  analogWrite(PWM_OUT_PIN, PWM_HIGH);
+  analogWrite(PWM_OUT_PIN, PWM_HIGH_VAL);
   digitalWrite(OPEN_LED_PIN, HIGH);
   digitalWrite(CLOSED_LED_PIN, LOW);
   isLocked = false;
