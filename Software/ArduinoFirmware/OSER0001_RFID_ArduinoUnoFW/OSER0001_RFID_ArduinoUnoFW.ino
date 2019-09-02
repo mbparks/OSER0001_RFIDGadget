@@ -44,24 +44,28 @@
 #endif
 
 
+const uint32_t NUMREADERS = 2;
+const uint32_t PN532_SCK =  13;
+const uint32_t PN532_MISO = 12;
+const uint32_t PN532_MOSI = 11;
+const uint32_t PN532_SS1 =  8;
+const uint32_t PN532_SS2 =  7;
+//const uint32_t PN532_SS3 = 6;
+//const uint32_t PN532_SS4 = 5;
 
-const int PN532_SCK =  13;
-const int PN532_MISO = 12;
-const int PN532_MOSI = 11;
-const int PN532_SS1 =  8;
-const int PN532_SS2 =  7;
-//const int PN532_SS3 = 6;
-//const int PN532_SS4 = 5;
+const uint32_t PWM_OUT_PIN = 3;
+const uint32_t OPEN_LED_PIN = 2;
+const uint32_t CLOSED_LED_PIN = 4;
+const uint32_t PWM_LOW = 0;
+const uint32_t PWM_HIGH = 255;
 
-const int NUMREADERS = 2;
-const int DELAYAMT = 1000;
+const uint32_t DELAYAMT = 1000;
 bool isLocked = true;
 
 const uint32_t ssPins[NUMREADERS] = {PN532_SS1, PN532_SS2};  //PN532_SS3, PN532_SS4};
 const uint32_t nfcAcceptedTags[NUMREADERS] = {3872679160, 3584511166};   //0, 0};
 
 Adafruit_PN532 *nfcReaders[NUMREADERS];
-
 
 
 /**************************************************************************
@@ -78,7 +82,7 @@ void setup(void) {
   {
     nfcReaders[x] = new Adafruit_PN532(PN532_SCK, PN532_MISO, PN532_MOSI, ssPins[x]);
     nfcReaders[x]->begin();
-    //delay(3000);
+    //delay(DELAYAMT*3);
     
     uint32_t versiondata = 9999;
     while (versiondata == 9999) {
@@ -98,6 +102,14 @@ void setup(void) {
     nfcReaders[x]->SAMConfig();
     nfcReaders[x]->setPassiveActivationRetries(1);
   }
+
+  pinMode(PWM_OUT_PIN, OUTPUT);
+  pinMode(OPEN_LED_PIN, OUTPUT);
+  pinMode(CLOSED_LED_PIN, OUTPUT);
+  
+  analogWrite(PWM_OUT_PIN, PWM_LOW);
+  digitalWrite(OPEN_LED_PIN, LOW);
+  digitalWrite(CLOSED_LED_PIN, HIGH);
 
   Serial.println(F("System initialized ..."));
 }
@@ -128,9 +140,9 @@ void loop(void) {
 
       if (success) {
         // Display some basic information about the card
-        DEBUG_PRINTLN(F("Found an ISO14443A card"));
-        DEBUG_PRINTLN(F("  UID Value: "));
-        nfcReaders[x]->PrintHex(uid, uidLength);
+        DEBUG_PRINT(F("Found an ISO14443A card with "));
+        //DEBUG_PRINT(F("  UID Value: "));
+        //nfcReaders[x]->PrintHex(uid, uidLength);
 
         if (uidLength == 4)
         {
@@ -142,11 +154,11 @@ void loop(void) {
           cardid |= uid[2];
           cardid <<= 8;
           cardid |= uid[3];
-          DEBUG_PRINTLN(F("Seems to be a Mifare Classic card."));
+          //DEBUG_PRINTLN(F("Seems to be a Mifare Classic card."));
         }
       }
 
-      DEBUG_PRINT(F("Tag ID: "));
+      DEBUG_PRINT(F("tag ID#"));
       DEBUG_PRINTLN(cardid);
       readNfcTags[x] = cardid;
       delay(DELAYAMT);
@@ -173,5 +185,8 @@ void loop(void) {
 void activateRelay()
 {
   DEBUG_PRINTLN(F("ALERT!!!  ALERT!!! All Tags Correct. Activate Relay.  ALERT!!! ALERT !!!"));
+  analogWrite(PWM_OUT_PIN, PWM_HIGH);
+  digitalWrite(OPEN_LED_PIN, HIGH);
+  digitalWrite(CLOSED_LED_PIN, LOW);
   isLocked = false;
 }
