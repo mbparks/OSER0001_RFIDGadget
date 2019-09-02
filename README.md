@@ -1,6 +1,6 @@
 View this project on [CADLAB.io](https://cadlab.io/project/2087). 
 
-# OSER0001_RFIDGadget
+# Open Source Escape Room Gadget #0001: RFID Puzzle
 One of the more nifty puzzles of a great escape room is having to find objects and place them at an exact spot. Say three different candlesticks on a fireplace mantle in a specific order.
 
 RFID tags are a great way to achieve this goal. Embedding RFID tags in the objects and RFID reader at the location the objects are to be placed.
