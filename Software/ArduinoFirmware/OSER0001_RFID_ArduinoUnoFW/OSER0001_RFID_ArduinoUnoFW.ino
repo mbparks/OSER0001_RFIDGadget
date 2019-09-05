@@ -44,7 +44,7 @@
 #endif
 
 
-const uint32_t NUM_READERS = 2;
+const uint32_t NUM_READERS = 2;        //Adjust number as needed 1 to 4
 const uint32_t PN532_SCK_PIN =  13;
 const uint32_t PN532_MISO_PIN = 12;
 const uint32_t PN532_MOSI_PIN = 11;
@@ -128,8 +128,13 @@ void setup(void) {
 void loop(void) {
   if (isLocked == true)
   {
-    uint32_t readNfcTags[NUM_READERS] = {0, 0};
+    uint32_t readNfcTags[NUM_READERS];
     uint32_t countOfMatchingTags = 0;
+
+    for (int w = 0; w < NUM_READERS; w++)
+    {
+      readNfcTags[w] = 0;
+    }
 
     for (int x = 0; x < NUM_READERS; x++) {
       uint8_t success;
