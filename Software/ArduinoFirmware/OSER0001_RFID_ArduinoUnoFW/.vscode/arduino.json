@@ -1,0 +1,6 @@
+{
+    "programmer": "AVRISP mkII",
+    "board": "arduino:avr:uno",
+    "port": "COM9",
+    "sketch": "OSER0001_RFID_ArduinoUnoFW.ino"
+}
