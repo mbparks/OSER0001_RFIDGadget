@@ -50,8 +50,8 @@ const uint32_t PN532_MISO_PIN = 12;
 const uint32_t PN532_MOSI_PIN = 11;
 const uint32_t PN532_SS1_PIN =  8;
 const uint32_t PN532_SS2_PIN =  7;
-//const uint32_t PN532_SS3_PIN = 6;
-//const uint32_t PN532_SS4_PIN = 5;
+const uint32_t PN532_SS3_PIN = 6;
+const uint32_t PN532_SS4_PIN = 5;
 
 const uint32_t ACCEPTED_TAG_ID1 = 3872679160;
 const uint32_t ACCEPTED_TAG_ID2 = 3584511166;
