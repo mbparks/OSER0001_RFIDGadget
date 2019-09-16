@@ -80,7 +80,7 @@ Adafruit_PN532 *nfcReaders[NUM_READERS];
  **************************************************************************/
 void setup(void) {
   Serial.begin(115200);
-  Serial.println(F("Welcome to the Escape Room RFID Gadget!"));
+  Serial.println(F("Welcome to the Escape Room RFID Gadget v0.0.1!"));
 
   for (int x = 0; x < NUM_READERS; x++)
   {
